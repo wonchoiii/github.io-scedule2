@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>제품 촬영 스튜디오 예약 시스템</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to top to prevent vertical centering issues on smaller screens */
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .calendar-container {
+            background-color: #ffffff;
+            border-radius: 1rem; /* rounded-xl */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-xl */
+            padding: 2.5rem; /* p-10 */
+            max-width: 1200px; /* Increased max-width for wider cells */
+            width: 100%;
+            margin-top: 20px;
+            margin-left: auto; /* Center the container */
+            margin-right: auto; /* Center the container */
+        }
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem; /* mb-8 */
+        }
+        .calendar-header button {
+            background-color: #e5e7eb; /* gray-200 */
+            color: #4b5563; /* gray-700 */
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+            border: none;
+        }
+        .calendar-header button:hover {
+            background-color: #d1d5db; /* gray-300 */
+        }
+        /*
+         * Responsive calendar grid styling using Tailwind CSS classes.
+         * The grid-template-columns property is now handled by Tailwind classes in HTML.
+         */
+        .calendar-grid {
+            gap: 0.5rem; /* gap-2 */
+        }
+        .day-header {
+            background-color: #e5e7eb; /* gray-200 */
+            color: #4b5563; /* gray-700 */
+            font-weight: 600; /* font-semibold */
+            padding: 0.75rem 0; /* py-3 */
+            text-align: center;
+            border-radius: 0.5rem; /* rounded-lg */
+        }
+        .day-cell {
+            background-color: #f9fafb; /* gray-50 */
+            min-height: 150px; /* Increased height for more content */
+            padding: 0.75rem; /* p-3 */
+            border-radius: 0.75rem; /* rounded-xl */
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: flex-start;
+            border: 1px solid #e5e7eb; /* border border-gray-200 */
+            position: relative;
+            overflow: hidden; /* Ensure content doesn't overflow by default */
+        }
+        .day-cell.current-month {
+            background-color: #ffffff;
+            cursor: pointer;
+        }
+        .day-cell.past-date {
+            background-color: #e5e7eb; /* gray-200 */
+            color: #6b7280; /* gray-500 */
+            cursor: not-allowed;
+        }
+        .day-cell.fully-booked {
+            background-color: #fecaca; /* red-200 */
+            color: #b91c1c; /* red-700 */
+            cursor: not-allowed;
+        }
+        .day-cell.holiday {
+            background-color: #ffe4e6; /* red-100 */
+            color: #dc2626; /* red-600 */
+            font-weight: 600;
+        }
+        .day-number {
+            font-size: 1.25rem; /* text-xl */
+            font-weight: 700; /* font-bold */
+            color: #1f2937; /* gray-900 */
+            margin-bottom: 0.5rem;
+        }
+        .day-cell.holiday .day-number {
+            color: #dc2626; /* red-600 */
+        }
+        .holiday-name {
+            font-size: 0.75rem; /* text-xs */
+            color: #dc2626; /* red-600 */
+            margin-top: 0.25rem;
+            font-weight: 500;
+        }
+        /* Adjusted styles for mobile responsiveness */
+        .reservation-entry, .delivery-entry {
+            font-size: 0.75rem; /* Smaller font for mobile */
+            color: #374151;
+            margin-top: 0.1rem; /* Reduced margin */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis; /* Re-added ellipsis for entries to prevent overflow */
+            max-width: 100%;
+            line-height: 1.1; /* Tighter line height */
+        }
+        /* New class for hover details to allow wrapping on hover/modal */
+        .reservation-hover-detail, .delivery-hover-detail {
+            font-size: 0.875rem; /* text-sm */
+            color: #374151; /* gray-700 */
+            margin-top: 0.25rem;
+            white-space: normal; /* Allow text wrapping */
+            overflow: visible; /* Allow content to be fully visible */
+            text-overflow: clip; /* No ellipsis */
+            line-height: 1.2;
+        }
+        .separator {
+            width: 100%;
+            height: 2px;
+            background-color: #ef4444;
+            margin: 0.4rem 0; /* Adjusted spacing */
+        }
+        .manage-button {
+            background-color: #60a5fa;
+            color: #ffffff;
+            padding: 0.2rem 0.6rem; /* Smaller padding for mobile */
+            border-radius: 0.5rem;
+            font-size: 0.7rem; /* Smaller font for mobile */
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+            margin-top: 0.4rem; /* Adjusted space */
+            align-self: flex-end;
+            position: absolute;
+            bottom: 0.4rem; /* Adjusted position */
+            right: 0.4rem; /* Adjusted position */
+        }
+        .manage-button:hover {
+            background-color: #3b82f6;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: #ffffff;
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+            width: 90%;
+            max-width: 500px;
+            position: relative;
+        }
+        .modal-close-button {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #6b7280;
+        }
+        .modal-close-button:hover {
+            color: #1f2937;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            color: #1f2937;
+            outline: none;
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+        }
+        .button-primary {
+            background-color: #2563eb;
+            color: #ffffff;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+            width: 100%;
+            border: none;
+        }
+        .button-primary:hover {
+            background-color: #1d4ed8;
+        }
+        .button-primary:disabled {
+            background-color: #9ca3af;
+            cursor: not-allowed;
+        }
+        .available-sku-text {
+            color: #ef4444;
+            font-weight: 500;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .ghost-info-text {
+            color: #4b5563;
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+        }
+        .misc-shooting-info {
+            font-size: 0.85rem;
+            color: #4b5563;
+            margin-top: 0.25rem;
+        }
+        .confirmation-message {
+            font-size: 0.9rem;
+            color: #374151;
+            margin-top: 1rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .message-box-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1001;
+        }
+        .message-box-content {
+            background-color: #ffffff;
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .message-box-content h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #1f2937;
+        }
+        .message-box-content .message-text-container {
+            margin-bottom: 1.5rem;
+        }
+        .message-box-content p {
+            font-size: 1rem;
+            color: #4b5563;
+            margin-bottom: 0;
+            white-space: pre-wrap;
+        }
+        .message-box-content .message-box-buttons {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 1rem;
+        }
+        .message-box-content button,
+        .message-box-content a.button-primary {
+            background-color: #2563eb;
+            color: #ffffff;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+            width: 100%;
+            border: none;
+            text-decoration: none;
+            display: block;
+            box-sizing: border-box;
+        }
+        .message-box-content button:hover,
+        .message-box-content a.button-primary:hover {
+            background-color: #1d4ed8;
+        }
+        .message-box-content button.secondary {
+            background-color: #6b7280;
+        }
+        .message-box-content button.secondary:hover {
+            background-color: #4b5563;
+        }
+
+        /* Styles for the new precaution section */
+        .precautions-section {
+            background-color: #fffbeb;
+            border: 1px solid #fcd34d;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            color: #b45309;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            text-align: left;
+        }
+        .precautions-section strong {
+            font-weight: 700;
+            color: #92400e;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="calendar-container">
+        <!-- New Precautions Section -->
+        <div class="precautions-section">
+            <strong>[예약 전 주의사항]</strong>
+            <p>1. 촬영 예약 날짜 하루 전 오후 5시까지 작업지시서와 촬영 상품 전달이 가능한지 확인 후 예약해주세요.</p>
+            <p>(작업지시서 양식은 예약 확정 후 안내)</p>
+            <p>2. 예약을 취소하거나 수량 변경을 희망하시면 예약 날짜 제일 아래 '관리' 버튼을 통해 변경 및 취소 가능합니다.</p>
+        </div>
+
+        <div class="calendar-header">
+            <button onclick="changeMonth(-1)">이전 달</button>
+            <h2 id="current-month-year" class="text-3xl font-bold text-center text-gray-900"></h2>
+            <button onclick="changeMonth(1)">다음 달</button>
+        </div>
+
+        <!-- Calendar grid headers with responsive Tailwind classes -->
+        <!-- Adjusted grid-cols for better mobile display: default 2 columns, then larger screens get more -->
+        <div class="calendar-grid grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-2 mb-4">
+            <div class="day-header">일</div>
+            <div class="day-header">월</div>
+            <div class="day-header">화</div>
+            <div class="day-header">수</div>
+            <div class="day-header">목</div>
+            <div class="day-header">금</div>
+            <div class="day-header">토</div>
+        </div>
+
+        <!-- Calendar days will be dynamically inserted here with responsive Tailwind classes -->
+        <!-- Adjusted grid-cols for better mobile display: default 2 columns, then larger screens get more -->
+        <div id="calendar-days" class="calendar-grid grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-2">
+            <!-- Calendar days will be dynamically inserted here -->
+        </div>
+    </div>
+
+    <!-- Reservation Modal -->
+    <div id="reservation-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="modal-close-button" onclick="closeModal('reservation-modal')">×</button>
+            <h3 id="modal-date" class="text-2xl font-bold text-gray-900 mb-6"></h3>
+
+            <form id="reservation-form">
+                <div class="form-group">
+                    <label for="company-name">업체명</label>
+                    <input type="text" id="company-name" placeholder="업체명을 입력하세요" required class="rounded-lg">
+                </div>
+                <div class="form-group">
+                    <label for="shooting-quantity">촬영할 총 수량 (SKU)</label>
+                    <input type="number" id="shooting-quantity" placeholder="수량을 입력하세요" min="1" required class="rounded-lg">
+                    <p class="misc-shooting-info">잡화촬영은 예약후 따로 문의주세요</p>
+                    <p id="ghost-info" class="ghost-info-text hidden">고스트 촬영은 촬영 시간 소요로 2배의 수량으로 자동 적용됩니다.</p>
+                </div>
+                <div class="form-group">
+                    <label for="shooting-type">촬영 종류</label>
+                    <select id="shooting-type" required class="rounded-lg">
+                        <option value="">선택하세요</option>
+                        <option value="nookki">누끼</option>
+                        <option value="ghost">고스트</option>
+                        <option value="natural">자연광</option>
+                    </select>
+                </div>
+                <p id="available-sku-display" class="available-sku-text"></p>
+                <button type="submit" class="button-primary">예약 신청</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Manage Reservation Modal -->
+    <div id="manage-reservation-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="modal-close-button" onclick="closeModal('manage-reservation-modal')">×</button>
+            <h3 id="manage-modal-date" class="text-2xl font-bold text-gray-900 mb-6">예약 관리</h3>
+            
+            <div id="manage-verification-section">
+                <div class="form-group">
+                    <label for="manage-company-name">업체명 입력 (예약 시 사용한 업체명)</label>
+                    <input type="text" id="manage-company-name" placeholder="업체명을 입력하세요" class="rounded-lg">
+                </div>
+                <button type="button" class="button-primary" onclick="verifyCompanyAndShowManagementOptions()">확인</button>
+                <p id="manage-error-message" class="text-red-500 text-sm mt-2 hidden">일치하는 예약 정보가 없습니다.</p>
+            </div>
+
+            <div id="manage-options-section" class="hidden">
+                <p class="text-lg font-semibold text-gray-800 mb-4" id="managed-date-display"></p>
+                <div id="reservations-list" class="mb-4">
+                    <!-- Reservations will be listed here -->
+                </div>
+                <button type="button" class="button-primary" onclick="closeModal('manage-reservation-modal')">닫기</button>
+            </div>
+
+            <!-- Quantity Adjustment Form (hidden by default) -->
+            <div id="quantity-adjustment-form" class="hidden mt-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                <h4 class="text-xl font-bold text-gray-800 mb-4">수량 조정</h4>
+                <div class="form-group">
+                    <label for="new-shooting-quantity">새로운 총 수량 (SKU)</label>
+                    <input type="number" id="new-shooting-quantity" min="1" class="rounded-lg" required>
+                    <p id="new-ghost-info" class="ghost-info-text hidden">고스트 촬영은 촬영 시간 소요로 2배의 수량으로 자동 적용됩니다.</p>
+                    <p id="new-available-sku-display" class="available-sku-text"></p>
+                </div>
+                <button type="button" class="button-primary" onclick="confirmQuantityAdjustment()">수량 변경</button>
+                <button type="button" class="button-primary secondary mt-2" onclick="cancelQuantityAdjustment()">취소</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Message Box -->
+    <div id="message-box" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 id="message-box-title"></h3>
+            <div class="message-text-container">
+                <p id="message-box-text"></p>
+            </div>
+            <div id="message-box-buttons" class="message-box-buttons">
+                <!-- Buttons will be dynamically added here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Store confirmed reservations.
+        // For persistence, integrate with a backend like Firebase Firestore.
+        let reservations = {};
+        // Store delivery information.
+        let deliveries = {};
+
+        const MAX_DAILY_CAPACITY = 60; // Max SKU capacity per day
+
+        // Current date and time for comparison
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Normalize to start of current day
+        const currentTime = now.getHours() * 60 + now.getMinutes(); // Current time in minutes from midnight (e.g., 15*60 for 3 PM)
+
+        let currentYear;
+        let currentMonth; // 0-indexed (0 for January, 11 for December)
+
+        // Global variable to hold the pending reservation data for confirmation
+        let currentPendingReservation = null;
+        let currentManagingDateString = ''; // Stores the date string for the currently managed day
+        let currentManagingReservationId = null; // Stores the ID of the reservation being adjusted
+
+        // KakaoTalk Channel Link
+        const KAKAO_CHANNEL_LINK = "https://pf.kakao.com/_xeEaxnxj";
+
+        // Hardcoded Korean Public Holidays (for 2025 and 2026)
+        // Note: For a production system, it's recommended to fetch holiday data from a reliable API
+        // or a server-side source, as hardcoding can lead to inaccuracies over time.
+        const koreanHolidays = {
+            '2025-01-01': '신정',
+            '2025-01-28': '설날',
+            '2025-01-29': '설날',
+            '2025-01-30': '설날',
+            '2025-03-01': '삼일절',
+            '2025-05-05': '어린이날',
+            '2025-05-06': '어린이날 대체공휴일',
+            '2025-05-29': '부처님오신날',
+            '2025-06-06': '현충일',
+            '2025-08-15': '광복절',
+            '2025-09-29': '추석',
+            '2025-09-30': '추석',
+            '2025-10-01': '추석',
+            '2025-10-03': '개천절',
+            '2025-10-09': '한글날',
+            '2025-12-25': '성탄절',
+            '2026-01-01': '신정',
+            '2026-02-17': '설날',
+            '2026-02-18': '설날',
+            '2026-02-19': '설날',
+            '2026-03-01': '삼일절', // Sunday
+            '2026-03-02': '삼일절 대체공휴일',
+            '2026-05-05': '어린이날',
+            '2026-05-24': '부처님오신날', // Sunday
+            '2026-05-25': '부처님오신날 대체공휴일',
+            '2026-06-06': '현충일',
+            '2026-08-15': '광복절',
+            '2026-09-24': '추석',
+            '2026-09-25': '추석',
+            '2026-09-26': '추석',
+            '2026-10-03': '개천절',
+            '2026-10-09': '한글날',
+            '2026-12-25': '성탄절'
+        };
+
+        // Function to show a custom message box
+        // type: 'info' for general messages, 'reservationComplete' for the specific reservation completion message
+        function showMessageBox(title, message, type = 'info', pendingResData = null) {
+            document.getElementById('message-box-title').innerText = title;
+            const messageBoxText = document.getElementById('message-box-text');
+            messageBoxText.innerHTML = message;
+
+            const messageBoxButtons = document.getElementById('message-box-buttons');
+            messageBoxButtons.innerHTML = ''; // Clear previous buttons
+
+            if (type === 'reservationComplete') {
+                // For '예약 신청 완료' message: only KakaoTalk link as a button
+                const kakaoLinkElement = document.createElement('a');
+                kakaoLinkElement.href = KAKAO_CHANNEL_LINK;
+                kakaoLinkElement.target = "_blank";
+                kakaoLinkElement.classList.add('button-primary');
+                kakaoLinkElement.textContent = '카카오톡 채널 추가하기';
+                
+                kakaoLinkElement.addEventListener('click', (e) => {
+                    // Prevent multiple clicks from processing the same reservation
+                    if (!currentPendingReservation) {
+                        e.preventDefault(); // Prevent opening KakaoTalk if already processed
+                        return;
+                    }
+
+                    // Get the data from the global pending variable
+                    const dataToProcess = currentPendingReservation;
+
+                    const { dateString, company, quantity, type: shootingType } = dataToProcess;
+                    const reservationId = Date.now().toString() + Math.random().toString(36).substring(2, 9); // Simple unique ID
+
+                    if (!reservations[dateString]) {
+                        reservations[dateString] = [];
+                    }
+                    reservations[dateString].push({
+                        id: reservationId,
+                        company: company,
+                        quantity: quantity,
+                        type: shootingType,
+                        reservationDate: dateString // Store original reservation date
+                    });
+
+                    // Calculate and store delivery date
+                    const deliveryDate = calculateDeliveryDate(dateString);
+                    if (!deliveries[deliveryDate]) {
+                        deliveries[deliveryDate] = [];
+                    }
+                    deliveries[deliveryDate].push({
+                        id: reservationId, // Use same ID
+                        company: company,
+                        quantity: quantity, // Store quantity for delivery
+                        type: shootingType, // Store type for delivery
+                        originalReservationDate: dateString
+                    });
+
+                    // Crucial: Clear the pending reservation data immediately after processing
+                    currentPendingReservation = null;
+
+                    // Disable the button to prevent further clicks for this specific message box instance
+                    e.currentTarget.disabled = true;
+                    e.currentTarget.classList.add('opacity-50', 'cursor-not-allowed');
+
+                    renderCalendar(currentYear, currentMonth); // Re-render calendar to show confirmed booking
+                    closeMessageBox(); // Close the current message box
+                    showMessageBox('예약 확정 완료', `${dateString}에 ${company}님의 예약이 최종 확정되어 달력에 반영되었습니다. 납품 예정일: ${deliveryDate}`, 'info');
+                });
+                messageBoxButtons.appendChild(kakaoLinkElement);
+
+            } else {
+                // For other informational messages: only '확인' button
+                const confirmBtn = document.createElement('button');
+                confirmBtn.classList.add('button-primary');
+                confirmBtn.textContent = '확인';
+                confirmBtn.onclick = closeMessageBox;
+                messageBoxButtons.appendChild(confirmBtn);
+            }
+
+            document.getElementById('message-box').classList.remove('hidden');
+        }
+
+        // Function to close the custom message box
+        function closeMessageBox() {
+            document.getElementById('message-box').classList.add('hidden');
+        }
+
+        // Function to get the initial of the shooting type
+        function getShootingTypeInitial(type) {
+            switch (type) {
+                case 'nookki': return '누';
+                case 'ghost': return '고';
+                case 'natural': return '자';
+                default: return '';
+            }
+        }
+
+        // Function to mask company name (e.g., "지오다노" -> "지오다***")
+        function maskCompanyName(name) {
+            if (!name) return '';
+            if (name.length === 1) {
+                return '*';
+            } else if (name.length === 2) {
+                return name.charAt(0) + '*';
+            } else { // name.length >= 3
+                return name.substring(0, 2) + '***';
+            }
+        }
+
+        // Function to calculate total booked SKUs for a given day, considering ghost type
+        function calculateBookedSKUs(dateString) {
+            const dayReservations = reservations[dateString] || [];
+            let totalSKUs = 0;
+            dayReservations.forEach(res => {
+                // Ghost shooting consumes double the quantity from capacity
+                totalSKUs += (res.type === 'ghost' ? res.quantity * 2 : res.quantity);
+            });
+            return totalSKUs;
+        }
+
+        // Function to calculate delivery date (5 business days, excluding weekends and holidays)
+        function calculateDeliveryDate(reservationDateString) {
+            let date = new Date(reservationDateString);
+            let businessDaysCount = 0;
+
+            while (businessDaysCount < 5) {
+                date.setDate(date.getDate() + 1); // Move to the next day
+                const currentDayString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+
+                // Check if it's a weekday (Monday-Friday) and not a holiday
+                if (dayOfWeek !== 0 && dayOfWeek !== 6 && !koreanHolidays[currentDayString]) {
+                    businessDaysCount++;
+                }
+            }
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        }
+
+        // Function to render the calendar
+        function renderCalendar(year, month) {
+            currentYear = year;
+            currentMonth = month;
+
+            const calendarDaysContainer = document.getElementById('calendar-days');
+            calendarDaysContainer.innerHTML = ''; // Clear previous days
+
+            const monthNames = ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"];
+            document.getElementById('current-month-year').textContent = `${currentYear}년 ${monthNames[currentMonth]}`;
+
+            const firstDayOfMonth = new Date(year, month, 1);
+            const lastDayOfMonth = new Date(year, month + 1, 0);
+            const numDaysInMonth = lastDayOfMonth.getDate();
+            const startDayOfWeek = firstDayOfMonth.getDay(); // 0 for Sunday, 1 for Monday, etc.
+
+            // Add empty cells for days before the 1st of the month
+            for (let i = 0; i < startDayOfWeek; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.classList.add('day-cell');
+                calendarDaysContainer.appendChild(emptyCell);
+            }
+
+            // Add days of the month
+            for (let day = 1; day <= numDaysInMonth; day++) {
+                const date = new Date(year, month, day);
+                const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const cell = document.createElement('div');
+                cell.classList.add('day-cell', 'rounded-xl', 'p-3', 'relative', 'flex', 'flex-col', 'justify-start', 'align-items-start', 'border', 'border-gray-200');
+
+                const dayNumberSpan = document.createElement('span');
+                dayNumberSpan.classList.add('day-number', 'text-xl', 'font-bold', 'text-gray-900', 'mb-2');
+                dayNumberSpan.textContent = day;
+                cell.appendChild(dayNumberSpan);
+
+                const currentDayReservations = reservations[dateString] || [];
+                const currentDayDeliveries = deliveries[dateString] || []; // Get deliveries for this day
+                const totalBookedSKUs = calculateBookedSKUs(dateString);
+                const remainingCapacity = MAX_DAILY_CAPACITY - totalBookedSKUs;
+
+                const isHoliday = koreanHolidays[dateString];
+                
+                // Calculate tomorrow's date for comparison
+                const tomorrow = new Date(today);
+                tomorrow.setDate(today.getDate() + 1);
+
+                // Determine if the cell should be blocked for booking
+                let isBlocked = false;
+                let blockReason = ''; // This will store the reason, but won't always be displayed
+
+                if (date < today) { // Past date
+                    isBlocked = true;
+                    blockReason = '마감';
+                } else if (date.toDateString() === today.toDateString()) { // Current day
+                    isBlocked = true;
+                    blockReason = '당일 예약 불가';
+                } else if (date.toDateString() === tomorrow.toDateString() && currentTime >= (15 * 60)) { // Next day after 3 PM
+                    isBlocked = true;
+                    // No blockReason text for this specific case, but the date is still blocked
+                } else if (isHoliday) { // Public Holiday
+                    isBlocked = true;
+                    blockReason = isHoliday; // Use the holiday name
+                } else if (date.getDay() === 0 || date.getDay() === 6) { // Weekend (Sunday or Saturday)
+                    isBlocked = true;
+                    blockReason = '주말 마감';
+                } else if (totalBookedSKUs >= MAX_DAILY_CAPACITY) { // Fully booked
+                    isBlocked = true;
+                    blockReason = '예약마감'; // Changed to "예약마감"
+                }
+
+                if (isBlocked) {
+                    // Default styling for all blocked dates
+                    cell.classList.add('past-date', 'bg-gray-200', 'text-gray-500'); // Removed cursor-not-allowed here to allow click for manage button
+
+                    // If it's fully booked by capacity, apply red background and specific text
+                    if (totalBookedSKUs >= MAX_DAILY_CAPACITY) {
+                        cell.classList.remove('past-date', 'bg-gray-200', 'text-gray-500'); // Remove default blocked style
+                        cell.classList.add('fully-booked', 'bg-red-200', 'text-red-700');
+                    }
+
+                    // Always display existing reservations if any
+                    currentDayReservations.forEach((res, index) => {
+                        const reservationText = document.createElement('span');
+                        reservationText.classList.add('reservation-entry');
+                        reservationText.textContent = `${index + 1}. ${maskCompanyName(res.company)} (${res.quantity}/${getShootingTypeInitial(res.type)})`;
+                        cell.appendChild(reservationText);
+                    });
+
+                    // Add separator if both reservations and deliveries exist
+                    if (currentDayReservations.length > 0 && currentDayDeliveries.length > 0) {
+                        const separator = document.createElement('div');
+                        separator.classList.add('separator');
+                        cell.appendChild(separator);
+                    }
+
+                    // Always display existing deliveries if any
+                    currentDayDeliveries.forEach((del, index) => {
+                        const deliveryText = document.createElement('span');
+                        deliveryText.classList.add('delivery-entry');
+                        deliveryText.textContent = `납품: ${maskCompanyName(del.company)} (${del.quantity}/${getShootingTypeInitial(del.type)}) (예약일: ${del.originalReservationDate})`;
+                        cell.appendChild(deliveryText);
+                    });
+
+                    // Display the block reason/status ONLY if blockReason is not empty
+                    if (blockReason) {
+                        const statusSpan = document.createElement('span');
+                        statusSpan.classList.add('text-sm', 'font-semibold', 'text-gray-600', 'mt-auto'); // mt-auto to push it to the bottom
+                        statusSpan.textContent = blockReason;
+                        cell.appendChild(statusSpan);
+                    }
+
+                    // Add "관리" button if there are any reservations or deliveries
+                    if (currentDayReservations.length > 0 || currentDayDeliveries.length > 0) {
+                        const manageButton = document.createElement('button');
+                        manageButton.classList.add('manage-button');
+                        manageButton.textContent = '관리';
+                        manageButton.onclick = (event) => {
+                            event.stopPropagation(); // Prevent opening new reservation modal
+                            openManageReservationModal(dateString);
+                        };
+                        cell.appendChild(manageButton);
+                    }
+
+                } else {
+                    // Available date
+                    cell.classList.add('current-month', 'bg-white', 'cursor-pointer');
+                    cell.onclick = () => openModal('reservation-modal', dateString); // Pass modal ID
+
+                    // Display existing reservations (always at the top)
+                    currentDayReservations.forEach((res, index) => {
+                        const reservationText = document.createElement('span');
+                        reservationText.classList.add('reservation-entry');
+                        reservationText.textContent = `${index + 1}. ${maskCompanyName(res.company)} (${res.quantity}/${getShootingTypeInitial(res.type)})`;
+                        cell.appendChild(reservationText);
+                    });
+
+                    // Add separator if both reservations and deliveries exist for this day
+                    if (currentDayReservations.length > 0 && currentDayDeliveries.length > 0) {
+                        const separator = document.createElement('div');
+                        separator.classList.add('separator');
+                        cell.appendChild(separator);
+                    }
+
+                    // Display deliveries for this day (always below reservations/separator)
+                    currentDayDeliveries.forEach((del, index) => {
+                        const deliveryText = document.createElement('span');
+                        deliveryText.classList.add('delivery-entry');
+                        deliveryText.textContent = `납품: ${maskCompanyName(del.company)} (${del.quantity}/${getShootingTypeInitial(del.type)}) (예약일: ${del.originalReservationDate})`;
+                        cell.appendChild(deliveryText);
+                    });
+
+                    // Display remaining capacity
+                    const availableText = document.createElement('span');
+                    availableText.classList.add('available-sku-text', 'mt-2'); // Added mt-2 for spacing
+                    availableText.textContent = `${remainingCapacity}sku 촬영 예약 가능`;
+                    cell.appendChild(availableText);
+
+                    // Add "관리" button if there are any reservations or deliveries
+                    if (currentDayReservations.length > 0 || currentDayDeliveries.length > 0) {
+                        const manageButton = document.createElement('button');
+                        manageButton.classList.add('manage-button');
+                        manageButton.textContent = '관리';
+                        manageButton.onclick = (event) => {
+                            event.stopPropagation(); // Prevent opening new reservation modal
+                            openManageReservationModal(dateString);
+                        };
+                        cell.appendChild(manageButton);
+                    }
+                }
+                calendarDaysContainer.appendChild(cell);
+            }
+        }
+
+        let selectedDateString = ''; // To store the date for the current modal
+
+        // Function to open a modal
+        function openModal(modalId, dateString) {
+            const modal = document.getElementById(modalId);
+            if (modalId === 'reservation-modal') {
+                const selectedDate = new Date(dateString);
+                selectedDate.setHours(0, 0, 0, 0); // Normalize for comparison
+
+                const tomorrow = new Date(today);
+                tomorrow.setDate(today.getDate() + 1);
+
+                // Check booking rules
+                if (selectedDate.toDateString() === today.toDateString()) {
+                    showMessageBox('예약 불가', '당일 예약은 불가능합니다.', 'info');
+                    return;
+                }
+                if (selectedDate.toDateString() === tomorrow.toDateString() && currentTime >= (15 * 60)) {
+                    showMessageBox('예약 불가', '오후 3시 이후에는 다음날 예약이 불가능합니다.', 'info');
+                    return;
+                }
+                if (selectedDate < today) {
+                    showMessageBox('예약 불가', '이미 지난 날짜는 예약할 수 없습니다.', 'info');
+                    return;
+                }
+                const isHoliday = koreanHolidays[dateString];
+                if (isHoliday) {
+                    showMessageBox('예약 불가', `${isHoliday}은(는) 예약할 수 없습니다.`, 'info');
+                    return;
+                }
+                if (selectedDate.getDay() === 0 || selectedDate.getDay() === 6) { // 0 for Sunday, 6 for Saturday
+                    showMessageBox('예약 불가', '주말은 예약할 수 없습니다.', 'info');
+                    return;
+                }
+
+                const totalBookedSKUs = calculateBookedSKUs(dateString);
+                if (totalBookedSKUs >= MAX_DAILY_CAPACITY) {
+                    showMessageBox('예약 불가', '해당 날짜는 예약이 마감되었습니다.', 'info');
+                    return;
+                }
+
+                document.getElementById('modal-date').textContent = `${dateString} 예약`;
+                // Reset form fields
+                document.getElementById('company-name').value = '';
+                document.getElementById('shooting-quantity').value = '';
+                document.getElementById('shooting-type').value = '';
+                document.getElementById('ghost-info').classList.add('hidden');
+                selectedDateString = dateString; // Set selected date for new reservation
+                updateAvailableSkuDisplay();
+            }
+            modal.classList.remove('hidden');
+        }
+
+        // Function to close a modal
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+            // Reset manage reservation modal state
+            if (modalId === 'manage-reservation-modal') {
+                document.getElementById('manage-verification-section').classList.remove('hidden');
+                document.getElementById('manage-options-section').classList.add('hidden');
+                document.getElementById('quantity-adjustment-form').classList.add('hidden');
+                document.getElementById('manage-company-name').value = '';
+                document.getElementById('manage-error-message').classList.add('hidden');
+                document.getElementById('reservations-list').innerHTML = '';
+                currentManagingDateString = '';
+                currentManagingReservationId = null;
+            }
+        }
+
+        // Function to open the manage reservation modal
+        function openManageReservationModal(dateString) {
+            currentManagingDateString = dateString;
+            document.getElementById('manage-modal-date').textContent = `${dateString} 예약 관리`;
+            openModal('manage-reservation-modal');
+        }
+
+        // Function to verify company and show management options
+        function verifyCompanyAndShowManagementOptions() {
+            const companyNameInput = document.getElementById('manage-company-name').value.trim();
+            const errorMessage = document.getElementById('manage-error-message');
+            const reservationsList = document.getElementById('reservations-list');
+            reservationsList.innerHTML = ''; // Clear previous list
+            errorMessage.classList.add('hidden');
+
+            const matchedReservations = (reservations[currentManagingDateString] || []).filter(res => res.company === companyNameInput);
+            const matchedDeliveries = (deliveries[currentManagingDateString] || []).filter(del => del.company === companyNameInput);
+
+            if (matchedReservations.length === 0 && matchedDeliveries.length === 0) {
+                errorMessage.classList.remove('hidden');
+                return;
+            }
+
+            document.getElementById('manage-verification-section').classList.add('hidden');
+            document.getElementById('manage-options-section').classList.remove('hidden');
+            document.getElementById('managed-date-display').textContent = `${currentManagingDateString} 예약 및 납품 정보`;
+
+            // Display matched reservations
+            if (matchedReservations.length > 0) {
+                const resHeader = document.createElement('h4');
+                resHeader.classList.add('text-lg', 'font-semibold', 'text-gray-700', 'mb-2');
+                resHeader.textContent = '예약 정보:';
+                reservationsList.appendChild(resHeader);
+
+                matchedReservations.forEach(res => {
+                    const resDiv = document.createElement('div');
+                    resDiv.classList.add('border', 'border-gray-200', 'p-3', 'rounded-lg', 'mb-2', 'bg-white');
+                    resDiv.innerHTML = `
+                        <p class="text-base font-medium">${res.company} (${res.quantity}/${getShootingTypeInitial(res.type)})</p>
+                        <div class="flex space-x-2 mt-2">
+                            <button type="button" class="bg-red-500 text-white px-3 py-1 rounded-md text-sm hover:bg-red-600" onclick="cancelReservation('${res.id}', '${currentManagingDateString}')">예약 취소</button>
+                            <button type="button" class="bg-blue-500 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-600" onclick="showQuantityAdjustmentForm('${res.id}', ${res.quantity}, '${res.type}')">수량 조정</button>
+                        </div>
+                    `;
+                    reservationsList.appendChild(resDiv);
+                });
+            }
+
+            // Display matched deliveries
+            if (matchedDeliveries.length > 0) {
+                if (matchedReservations.length > 0) {
+                    const separator = document.createElement('div');
+                    separator.classList.add('separator', 'my-4'); // Add margin for visual separation
+                    reservationsList.appendChild(separator);
+                }
+
+                const delHeader = document.createElement('h4');
+                delHeader.classList.add('text-lg', 'font-semibold', 'text-gray-700', 'mb-2');
+                delHeader.textContent = '납품 정보:';
+                reservationsList.appendChild(delHeader);
+
+                matchedDeliveries.forEach(del => {
+                    const delDiv = document.createElement('div');
+                    delDiv.classList.add('border', 'border-gray-200', 'p-3', 'rounded-lg', 'mb-2', 'bg-white');
+                    delDiv.innerHTML = `
+                        <p class="text-base font-medium">납품: ${del.company} (${del.quantity}/${getShootingTypeInitial(del.type)}) (예약일: ${del.originalReservationDate})</p>
+                    `;
+                    reservationsList.appendChild(delDiv);
+                });
+            }
+        }
+
+        // Function to cancel a reservation
+        function cancelReservation(reservationId, dateString) {
+            showMessageBox(
+                '예약 취소 확인',
+                '정말로 이 예약을 취소하시겠습니까? 관련 납품 정보도 삭제됩니다.',
+                'confirmCancel', // A new type for confirmation
+                { reservationId, dateString }
+            );
+
+            // Override message box buttons for confirmation
+            const messageBoxButtons = document.getElementById('message-box-buttons');
+            messageBoxButtons.innerHTML = '';
+            const confirmBtn = document.createElement('button');
+            confirmBtn.classList.add('button-primary');
+            confirmBtn.textContent = '예, 취소합니다';
+            confirmBtn.onclick = () => {
+                performCancelReservation(reservationId, dateString);
+                closeMessageBox();
+            };
+            messageBoxButtons.appendChild(confirmBtn);
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.classList.add('button-primary', 'secondary');
+            cancelBtn.textContent = '아니오, 유지합니다';
+            cancelBtn.onclick = closeMessageBox;
+            messageBoxButtons.appendChild(cancelBtn);
+        }
+
+        function performCancelReservation(reservationId, dateString) {
+            // Remove from reservations
+            reservations[dateString] = (reservations[dateString] || []).filter(res => res.id !== reservationId);
+            if (reservations[dateString].length === 0) {
+                delete reservations[dateString];
+            }
+
+            // Remove from deliveries
+            for (const deliveryDate in deliveries) {
+                deliveries[deliveryDate] = (deliveries[deliveryDate] || []).filter(del => del.id !== reservationId);
+                if (deliveries[deliveryDate].length === 0) {
+                    delete deliveries[deliveryDate];
+                }
+            }
+
+            renderCalendar(currentYear, currentMonth);
+            closeModal('manage-reservation-modal');
+            showMessageBox('취소 완료', '예약이 성공적으로 취소되었습니다.', 'info');
+        }
+
+        // Function to show quantity adjustment form
+        function showQuantityAdjustmentForm(reservationId, currentQuantity, shootingType) {
+            currentManagingReservationId = reservationId;
+            document.getElementById('manage-options-section').classList.add('hidden');
+            document.getElementById('quantity-adjustment-form').classList.remove('hidden');
+            document.getElementById('new-shooting-quantity').value = currentQuantity;
+
+            // Update ghost info visibility for adjustment form
+            const newGhostInfo = document.getElementById('new-ghost-info');
+            if (shootingType === 'ghost') {
+                newGhostInfo.classList.remove('hidden');
+            } else {
+                newGhostInfo.classList.add('hidden');
+            }
+            updateAvailableSkuDisplayForAdjustment(shootingType, currentQuantity);
+            
+            // Add event listener for new quantity input in adjustment form
+            document.getElementById('new-shooting-quantity').oninput = () => {
+                updateAvailableSkuDisplayForAdjustment(shootingType, document.getElementById('new-shooting-quantity').value);
+            };
+        }
+
+        // Function to update available SKU display in the quantity adjustment form
+        function updateAvailableSkuDisplayForAdjustment(shootingType, currentInputQuantity) {
+            const totalBookedSKUs = calculateBookedSKUs(currentManagingDateString);
+            const currentReservation = reservations[currentManagingDateString].find(res => res.id === currentManagingReservationId);
+            
+            let capacityWithoutCurrentBooking = totalBookedSKUs;
+            if (currentReservation) {
+                capacityWithoutCurrentBooking -= (currentReservation.type === 'ghost' ? currentReservation.quantity * 2 : currentReservation.quantity);
+            }
+
+            const remainingCapacity = MAX_DAILY_CAPACITY - capacityWithoutCurrentBooking;
+            const newAvailableSkuDisplay = document.getElementById('new-available-sku-display');
+
+            let effectiveInputQuantity = parseInt(currentInputQuantity);
+            if (isNaN(effectiveInputQuantity) || effectiveInputQuantity < 1) {
+                effectiveInputQuantity = 0; // Treat invalid input as 0 for calculation
+            }
+
+            let effectiveCapacityConsumption = effectiveInputQuantity;
+            if (shootingType === 'ghost') {
+                effectiveCapacityConsumption = effectiveInputQuantity * 2;
+            }
+
+            if (effectiveCapacityConsumption > remainingCapacity) {
+                newAvailableSkuDisplay.textContent = `입력 수량이 너무 많습니다. 최대 ${Math.floor(remainingCapacity / (shootingType === 'ghost' ? 2 : 1))} SKU까지 가능합니다.`;
+                newAvailableSkuDisplay.classList.remove('hidden');
+            } else {
+                newAvailableSkuDisplay.classList.add('hidden');
+            }
+        }
+
+        // Function to confirm quantity adjustment
+        function confirmQuantityAdjustment() {
+            const newQuantityInput = parseInt(document.getElementById('new-shooting-quantity').value);
+            if (isNaN(newQuantityInput) || newQuantityInput < 1) {
+                showMessageBox('입력 오류', '유효한 수량을 입력해주세요.', 'info');
+                return;
+            }
+
+            const currentReservationIndex = reservations[currentManagingDateString].findIndex(res => res.id === currentManagingReservationId);
+            if (currentReservationIndex === -1) {
+                showMessageBox('오류', '예약 정보를 찾을 수 없습니다.', 'info');
+                return;
+            }
+
+            const oldReservation = reservations[currentManagingDateString][currentReservationIndex];
+            const oldEffectiveQuantity = oldReservation.type === 'ghost' ? oldReservation.quantity * 2 : oldReservation.quantity;
+            const newEffectiveQuantity = oldReservation.type === 'ghost' ? newQuantityInput * 2 : newQuantityInput;
+
+            const totalBookedSKUsExcludingCurrent = calculateBookedSKUs(currentManagingDateString) - oldEffectiveQuantity;
+            const remainingCapacityAfterOthers = MAX_DAILY_CAPACITY - totalBookedSKUsExcludingCurrent;
+
+            if (newEffectiveQuantity > remainingCapacityAfterOthers) {
+                showMessageBox('수량 제한', `새로운 수량으로는 예약이 불가능합니다. 최대 ${Math.floor(remainingCapacityAfterOthers / (oldReservation.type === 'ghost' ? 2 : 1))} SKU까지 가능합니다.`, 'info');
+                return;
+            }
+
+            // Update reservation and delivery
+            reservations[currentManagingDateString][currentReservationIndex].quantity = newQuantityInput;
+
+            // Find and update corresponding delivery
+            for (const deliveryDate in deliveries) {
+                const deliveryIndex = (deliveries[deliveryDate] || []).findIndex(del => del.id === currentManagingReservationId);
+                if (deliveryIndex !== -1) {
+                    deliveries[deliveryDate][deliveryIndex].quantity = newQuantityInput;
+                    // Also update the type in delivery if it was changed (though not currently possible in UI)
+                    deliveries[deliveryDate][deliveryIndex].type = oldReservation.type;  
+                    break; // Assuming one delivery per reservation ID
+                }
+            }
+
+            renderCalendar(currentYear, currentMonth);
+            closeModal('manage-reservation-modal');
+            showMessageBox('수량 조정 완료', '예약 수량이 성공적으로 조정되었습니다.', 'info');
+        }
+
+        // Function to cancel quantity adjustment
+        function cancelQuantityAdjustment() {
+            document.getElementById('quantity-adjustment-form').classList.add('hidden');
+            document.getElementById('manage-options-section').classList.remove('hidden');
+            currentManagingReservationId = null; // Clear the ID
+        }
+
+        // Function to update available SKU display in the modal
+        function updateAvailableSkuDisplay() {
+            const totalBookedSKUs = calculateBookedSKUs(selectedDateString);
+            const remainingCapacity = MAX_DAILY_CAPACITY - totalBookedSKUs;
+            const availableSkuDisplay = document.getElementById('available-sku-display');
+            availableSkuDisplay.textContent = `${remainingCapacity}sku 촬영 예약 가능`;
+            availableSkuDisplay.classList.remove('hidden'); // Ensure it's visible
+        }
+
+        // Event listener for shooting type change
+        document.getElementById('shooting-type').addEventListener('change', (event) => {
+            const shootingType = event.target.value;
+            const shootingQuantityInput = document.getElementById('shooting-quantity');
+            const ghostInfo = document.getElementById('ghost-info');
+
+            if (shootingType === 'ghost') {
+                ghostInfo.classList.remove('hidden');
+                // When ghost is selected, the input quantity is the actual items,
+                // but it consumes double capacity.
+                // We need to ensure the user cannot enter more than half of remaining capacity.
+                const totalBookedSKUs = calculateBookedSKUs(selectedDateString);
+                const remainingCapacity = MAX_DAILY_CAPACITY - totalBookedSKUs;
+                const maxGhostInput = Math.floor(remainingCapacity / 2);
+
+                shootingQuantityInput.max = maxGhostInput; // Set max attribute
+                if (parseInt(shootingQuantityInput.value) > maxGhostInput) {
+                    shootingQuantityInput.value = maxGhostInput; // Adjust if current value is too high
+                }
+            } else {
+                ghostInfo.classList.add('hidden');
+                shootingQuantityInput.removeAttribute('max'); // Remove max attribute for other types
+            }
+            // Re-validate quantity on type change
+            handleQuantityInput();
+        });
+
+        // Event listener for quantity input change
+        document.getElementById('shooting-quantity').addEventListener('input', handleQuantityInput);
+
+        function handleQuantityInput() {
+            const shootingQuantityInput = document.getElementById('shooting-quantity');
+            const shootingType = document.getElementById('shooting-type').value;
+            let quantity = parseInt(shootingQuantityInput.value);
+
+            if (isNaN(quantity) || quantity < 1) {
+                quantity = 1;
+                shootingQuantityInput.value = 1;
+            }
+
+            const totalBookedSKUs = calculateBookedSKUs(selectedDateString);
+            const remainingCapacity = MAX_DAILY_CAPACITY - totalBookedSKUs;
+
+            let effectiveQuantity = quantity;
+            if (shootingType === 'ghost') {
+                effectiveQuantity = quantity * 2;
+            }
+
+            if (effectiveQuantity > remainingCapacity) {
+                let adjustedQuantity = quantity;
+                if (shootingType === 'ghost') {
+                    adjustedQuantity = Math.floor(remainingCapacity / 2);
+                } else {
+                    adjustedQuantity = remainingCapacity;
+                }
+                shootingQuantityInput.value = adjustedQuantity;
+                showMessageBox('수량 제한', `선택하신 촬영 종류로는 최대 ${adjustedQuantity} SKU까지 예약 가능합니다.`, 'info');
+            }
+        }
+
+        // Handle form submission (Reservation Request)
+        document.getElementById('reservation-form').addEventListener('submit', (event) => {
+            event.preventDefault();
+
+            const companyName = document.getElementById('company-name').value.trim();
+            const shootingQuantity = parseInt(document.getElementById('shooting-quantity').value);
+            const shootingType = document.getElementById('shooting-type').value;
+
+            if (!companyName || isNaN(shootingQuantity) || shootingQuantity < 1 || !shootingType) {
+                showMessageBox('입력 오류', '모든 필드를 올바르게 입력해주세요.', 'info');
+                return;
+            }
+
+            const totalBookedSKUs = calculateBookedSKUs(selectedDateString);
+            const remainingCapacity = MAX_DAILY_CAPACITY - totalBookedSKUs;
+
+            let effectiveBookingSKU = shootingQuantity;
+            if (shootingType === 'ghost') {
+                effectiveBookingSKU = shootingQuantity * 2;
+            }
+
+            if (effectiveBookingSKU > remainingCapacity) {
+                showMessageBox('예약 불가', `선택하신 날짜에는 ${shootingQuantity} SKU를 예약할 수 없습니다. 잔여 수량: ${remainingCapacity} SKU`, 'info');
+                return;
+            }
+
+            // Store as pending reservation
+            currentPendingReservation = {
+                dateString: selectedDateString,
+                company: companyName,
+                quantity: shootingQuantity,
+                type: shootingType
+            };
+
+            closeModal('reservation-modal'); // Close the reservation form modal
+
+            // Show KakaoTalk instructions. The actual confirmation will happen when the link is clicked.
+            showMessageBox(
+                '예약 신청 완료',
+                `카카오톡 채널 추가 후 채팅으로 "예약 완료"라고 말씀해주시면 최종 예약이 확정됩니다.`,
+                'reservationComplete', // Indicate this is the special message type
+                currentPendingReservation // Pass the pending data to the message box
+            );
+        });
+
+        // Function to change month
+        function changeMonth(delta) {
+            currentMonth += delta;
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            } else if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+            renderCalendar(currentYear, currentMonth);
+        }
+
+        // Initialize calendar for the current month
+        document.addEventListener('DOMContentLoaded', () => {
+            currentYear = now.getFullYear();
+            currentMonth = now.getMonth();
+            renderCalendar(currentYear, currentMonth);
+        });
+    </script>
+</body>
+</html>
